@@ -208,6 +208,14 @@
   (t:builder-ref t:type-ref t:value-ref (pointer t:value-ref) u32 (pointer u8))
   t:value-ref)
 
+; Mark a call as tail/musttail after it has been built.  The caller must meet
+; LLVM's structural requirements; verification remains the final backstop.
+(base:external-function
+  tail-call-kind-set
+  "LLVMSetTailCallKind"
+  (t:value-ref i32)
+  void)
+
 (base:external-function
   build-phi
   "LLVMBuildPhi"
@@ -496,6 +504,7 @@
   build-zext
   build-trunc
   build-call
+  tail-call-kind-set
   build-phi
   phi-incoming
   build-global-string

@@ -13,6 +13,10 @@
 
 (base:constant int-sle i32 41)
 
+; LLVMTailCallKindMustTail.  LLVM's verifier requires an immediate matching
+; return, which is exactly the form emitted for eligible self recursion.
+(base:constant tail-call-musttail i32 2)
+
 (base:constant linkage-internal i32 8)
 
 (base:constant verify-return-status i32 2)
@@ -50,6 +54,7 @@
   int-sge
   int-slt
   int-sle
+  tail-call-musttail
   linkage-internal
   verify-return-status
   codegen-none
