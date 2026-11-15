@@ -6,37 +6,50 @@ verification, native target initialization, and object-file emission. The librar
 uses ordinary Verona `external-function` declarations; it needs no C shim and
 has no dependency on the compiler core or the Common Lisp LLVM bindings.
 
-The current surface covers the compiler's initial integer core. It is a focused
-subset of LLVM, with raw bindings exposed so other Verona tools can use and
-extend it. The signatures and enum values follow the repository's pinned LLVM
-23 `llvm-c` headers.
+The bindings cover the compiler's scalar, aggregate, native ABI, target, and
+optimization-pass needs. They remain a focused subset of LLVM, with raw bindings
+available for other Verona tools. Signatures follow LLVM 23's `llvm-c` headers.
+
+This repository is consumed by [Verona](https://github.com/verona-project/verona)
+as the `projects/llvm` submodule. Its source modules have no Verona dependency
+beyond [Base](https://github.com/verona-project/base).
 
 ## Build and test
 
-Use the repository's pinned Nix development shell:
+Use a compatible Verona compiler, LLVM 23 shared libraries, Clang, and `llvm-ar`.
+LLVM must be discoverable by the linker and at runtime. The Verona compiler's
+pinned Nix shell supplies that toolchain when working inside its checkout.
+
+For a standalone checkout, keep Base alongside this repository:
 
 ```sh
-make llvm-bindings
-make test-llvm-bindings
-make test-compiler-core
+git clone https://github.com/verona-project/llvm.git
+git clone https://github.com/verona-project/base.git
+cd llvm
+verona build verona-llvm build
+verona build llvm-tests build
+./build/llvm-tests build/smoke.o build/nonexistent/smoke.o
+clang build/smoke.o -o build/smoke
+./build/smoke
+# Expected process status: 42.
 ```
 
-Or from this directory:
+The smoke test's second output path must have a nonexistent parent directory;
+it checks object-emission error reporting before writing the valid first path.
+The archive is `build/libverona-llvm.a`. Source modules are the normal Verona
+consumption interface: add this repository's `src` directory and Base's `src`
+directory to module paths, and `(library "LLVM")` to native executable targets.
+
+Inside a Verona checkout, existing paths and manifests are unchanged:
 
 ```sh
-../../build/verona build verona-llvm ../../build/llvm
-../../build/verona build llvm-tests ../../build/llvm
+build/compiler/verona build verona build/compiler
 ```
 
-The archive is `build/llvm/libverona-llvm.a`. As with other Verona libraries,
-source modules are the normal consumption interface: add `projects/llvm/src`
-and `projects/base/src` to the consumer's module paths and `(library "LLVM")`
-to its build target. LLVM's shared library must be on the linker's search path
-and available at runtime. The pinned Nix shell provides both. This library
-currently supports the repository's 64-bit AArch64/x86-64 Darwin/Linux targets;
-`llvm.target` registers both architecture backends. `machine-for-triple` selects
-an explicit LLVM triple, allowing cross-target object emission within those
-architectures. Additional architecture initializers remain future work.
+The bindings support 64-bit AArch64/x86-64 Darwin/Linux targets. `llvm.target`
+registers both architecture backends; `machine-for-triple` selects an explicit
+LLVM triple for cross-target object emission within those architectures.
+Additional architecture initializers remain future work.
 
 ## Modules
 
@@ -45,7 +58,8 @@ architectures. Additional architecture initializers remain future work.
 | `llvm.types` | Distinct opaque `context-ref`, `module-ref`, `type-ref`, `value-ref`, `block-ref`, `builder-ref`, `target-ref`, `machine-ref`, `layout-ref`; 32-bit `boolean` for LLVMBool |
 | `llvm.core` | Raw context/module/message management; integer, pointer and function types; functions and parameters; constants; blocks/builders; arithmetic, comparisons, calls, branches, phi nodes, casts and global strings; verification and LLVM's text printer |
 | `llvm.enums` | Named LLVM 23 C enum constants for predicates, linkage, verification and object generation |
-| `llvm.target` | Raw target/target-machine/layout operations plus `native-machine`, `native-machine-with-optimization`, `machine-for-triple`, `pointer-size`, `layout-string`, `null-pointer`, and `is-null` helpers |
+| `llvm.target` | Raw target/target-machine/layout operations plus `native-machine`, `native-machine-with-optimization`, `machine-for-triple`, `pointer-size`, `layout-string`, `null-pointer` helpers |
+| `llvm.passes` | LLVM 23 new-pass-manager pipelines with owned error diagnostics |
 | `llvm` | Owning `session`, `create`, `destroy`, `verify`, fixed-arity direct `call-0` through `call-3`, and single-edge phi `incoming` helper |
 
 Raw binding names use Verona spelling, for example `llvm.core:build-add` binds
@@ -81,7 +95,7 @@ is Verona; LLVM constructs and prints the IR itself.
       (ir:build-ret builder (ir:const-int i32 42 0))
       (let ((status i32 (llvm:verify owner (& message))))
         (do
-(match (is-null message)
+          (match (base:is-null message)
             (true unit)
             (false (do (ir:message-dispose message) unit)))
           (llvm:destroy owner)
@@ -139,7 +153,8 @@ and object emission.
   on failure. Dispose a successful machine with `machine-dispose` after use.
 - Most builders require structurally valid operands and can assert on incorrect
   use; distinct handles prevent type-category mixups, not all LLVM misuse.
-  `null-pointer`/`is-null` use the supported hosts' pointer-sized representation.
+  `null-pointer` uses the supported hosts' pointer-sized representation. Use
+  Base's `is-null` to test pointers.
   No garbage collector, reference counting, or automatic resource cleanup is
   introduced.
 
@@ -151,11 +166,9 @@ recursion and runtime guards through the binding. A linker spy verifies that
 Clang receives a binary object and only performs native linking; `emit-llvm`
 works even when no Clang executable is available.
 
-Current validation on AArch64 Darwin includes all eight LLVM binding checks,
-117 compiler regressions, and 60 shared evaluator/native fixtures. Compiler
-checks also emit and inspect AArch64/x86-64 objects for Darwin and Linux,
-including selected reader facts and aggregate ABI differences. These checks
-do not execute the foreign objects.
+The Verona compiler repository maintains the larger evaluator/native regression
+suite and cross-target object checks. Emitting a foreign object does not prove
+that it executes correctly on that target.
 
 The core bindings also expose context-owned literal `struct-type`, `const-null`,
 and the `build-insert`/`build-extract` aggregate SSA builders. Struct
@@ -174,3 +187,7 @@ pass options and consumes LLVM errors internally, and enables per-pass checks.
 Finish IR construction and clear any builder insertion position before running
 passes that may delete blocks. Verify the input module first and verify output
 before native emission. The compiler driver does both.
+
+## License
+
+Released into the public domain under the [Unlicense](LICENSE).
