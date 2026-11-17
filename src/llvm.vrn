@@ -4,18 +4,45 @@
 (import llvm.enums :as enum)
 (import llvm.target)
 
-(base:type session (product (context t:context-ref) (module t:module-ref) (builder t:builder-ref)))
+(base:type session
+  (product
+    (context t:context-ref)
+    (module t:module-ref)
+    (builder t:builder-ref)
+    (debug t:di-builder-ref)))
 
 (base:function create ((name (pointer u8))) session
   (let ((context t:context-ref (c:context-create)))
-    (session context (c:module-create name context) (c:builder-create context))))
+    (let
+      ((module t:module-ref (c:module-create name context)))
+      (session context module (c:builder-create context) (c:di-builder-create module)))))
+
+; Debug metadata must be opt-in. Add LLVM's format-version module flag only
+; when a caller is about to build debug descriptors.
+(base:function debug-enable ((owner session)) unit
+  (do
+    (c:module-flag-add
+      (field owner module)
+      1
+      "Debug Info Version"
+      18
+      (c:value-as-metadata
+        (c:const-int (c:int-type (field owner context) 32) 3 0)))
+    unit))
 
 (base:function destroy ((owner session)) unit
   (do
     (c:builder-dispose (field owner builder))
+    (c:di-builder-finalize (field owner debug))
+    (c:di-builder-dispose (field owner debug))
     (c:module-dispose (field owner module))
     (c:context-dispose (field owner context))
     unit))
+
+; Call this after all IR and debug records have been built, before verification
+; or object emission. DESTROY performs the same finalization as a safety net.
+(base:function finalize-debug ((owner session)) unit
+  (do (c:di-builder-finalize (field owner debug)) unit))
 
 ; Non-aborting verification. OUT-MESSAGE must be disposed even on success if nonnull.
 (base:function verify ((owner session) (message (pointer (pointer u8)))) i32
@@ -55,4 +82,4 @@
 (base:function incoming ((phi t:value-ref) (value t:value-ref) (block t:block-ref)) unit
   (do (c:phi-incoming phi (& value) (& block) 1) unit))
 
-(export session create destroy verify call-0 call-1 call-2 call-3 incoming)
+(export session create destroy debug-enable finalize-debug verify call-0 call-1 call-2 call-3 incoming)

@@ -28,6 +28,16 @@
 
 (base:external-function module-target "LLVMSetTarget" (t:module-ref (pointer u8)) void)
 
+; LLVM's debug backend requires the standard Debug Info Version module flag.
+; The value is metadata wrapping the current LLVM IR debug format version (3).
+(base:external-function
+  module-flag-add
+  "LLVMAddModuleFlag"
+  (t:module-ref i32 (pointer u8) u32 t:metadata-ref)
+  void)
+
+(base:external-function value-as-metadata "LLVMValueAsMetadata" (t:value-ref) t:metadata-ref)
+
 (base:external-function int-type "LLVMIntTypeInContext" (t:context-ref u32) t:type-ref)
 
 (base:external-function void-type "LLVMVoidTypeInContext" (t:context-ref) t:type-ref)
@@ -131,6 +141,131 @@
 (base:external-function builder-create "LLVMCreateBuilderInContext" (t:context-ref) t:builder-ref)
 
 (base:external-function builder-dispose "LLVMDisposeBuilder" (t:builder-ref) void)
+
+; LLVM 23 debug-info C API.  Debug records, not legacy dbg intrinsics, carry
+; variable locations in modern LLVM IR.
+(base:external-function di-builder-create "LLVMCreateDIBuilder" (t:module-ref) t:di-builder-ref)
+
+(base:external-function di-builder-dispose "LLVMDisposeDIBuilder" (t:di-builder-ref) void)
+
+(base:external-function di-builder-finalize "LLVMDIBuilderFinalize" (t:di-builder-ref) void)
+
+(base:external-function
+  di-file
+  "LLVMDIBuilderCreateFile"
+  (t:di-builder-ref (pointer u8) u64 (pointer u8) u64)
+  t:metadata-ref)
+
+(base:external-function
+  di-compile-unit
+  "LLVMDIBuilderCreateCompileUnit"
+  (t:di-builder-ref
+   i32
+   t:metadata-ref
+   (pointer u8)
+   u64
+   t:boolean
+   (pointer u8)
+   u64
+   u32
+   (pointer u8)
+   u64
+   i32
+   u32
+   t:boolean
+   t:boolean
+   (pointer u8)
+   u64
+   (pointer u8)
+   u64)
+  t:metadata-ref)
+
+(base:external-function
+  di-basic-type
+  "LLVMDIBuilderCreateBasicType"
+  (t:di-builder-ref (pointer u8) u64 u64 i32 i32)
+  t:metadata-ref)
+
+(base:external-function
+  di-type-array
+  "LLVMDIBuilderGetOrCreateTypeArray"
+  (t:di-builder-ref (pointer t:metadata-ref) u64)
+  t:metadata-ref)
+
+(base:external-function
+  di-subroutine-type
+  "LLVMDIBuilderCreateSubroutineType"
+  (t:di-builder-ref t:metadata-ref (pointer t:metadata-ref) u32 i32)
+  t:metadata-ref)
+
+(base:external-function
+  di-function
+  "LLVMDIBuilderCreateFunction"
+  (t:di-builder-ref
+   t:metadata-ref
+   (pointer u8)
+   u64
+   (pointer u8)
+   u64
+   t:metadata-ref
+   u32
+   t:metadata-ref
+   t:boolean
+   t:boolean
+   u32
+   i32
+   t:boolean)
+  t:metadata-ref)
+
+(base:external-function
+  di-lexical-block
+  "LLVMDIBuilderCreateLexicalBlock"
+  (t:di-builder-ref t:metadata-ref t:metadata-ref u32 u32)
+  t:metadata-ref)
+
+(base:external-function
+  di-location
+  "LLVMDIBuilderCreateDebugLocation"
+  (t:context-ref u32 u32 t:metadata-ref t:metadata-ref)
+  t:metadata-ref)
+
+(base:external-function
+  builder-debug-location-set
+  "LLVMSetCurrentDebugLocation2"
+  (t:builder-ref t:metadata-ref)
+  void)
+
+(base:external-function
+  instruction-debug-location-set
+  "LLVMInstructionSetDebugLoc"
+  (t:value-ref t:metadata-ref)
+  void)
+
+(base:external-function subprogram-set "LLVMSetSubprogram" (t:value-ref t:metadata-ref) void)
+
+(base:external-function
+  di-expression
+  "LLVMDIBuilderCreateExpression"
+  (t:di-builder-ref (pointer i64) u64)
+  t:metadata-ref)
+
+(base:external-function
+  di-auto-variable
+  "LLVMDIBuilderCreateAutoVariable"
+  (t:di-builder-ref t:metadata-ref (pointer u8) u64 t:metadata-ref u32 t:metadata-ref t:boolean i32 u32)
+  t:metadata-ref)
+
+(base:external-function
+  di-declare-record-at-end
+  "LLVMDIBuilderInsertDeclareRecordAtEnd"
+  (t:di-builder-ref t:value-ref t:metadata-ref t:metadata-ref t:metadata-ref t:block-ref)
+  t:debug-record-ref)
+
+(base:external-function
+  di-value-record-at-end
+  "LLVMDIBuilderInsertDbgValueRecordAtEnd"
+  (t:di-builder-ref t:value-ref t:metadata-ref t:metadata-ref t:metadata-ref t:block-ref)
+  t:debug-record-ref)
 
 (base:external-function builder-clear "LLVMClearInsertionPosition" (t:builder-ref) void)
 
@@ -475,6 +610,8 @@
   module-string
   module-print-file
   module-target
+  module-flag-add
+  value-as-metadata
   int-type
   void-type
   pointer-type
@@ -488,6 +625,24 @@
   block-parent
   builder-create
   builder-dispose
+  di-builder-create
+  di-builder-dispose
+  di-builder-finalize
+  di-file
+  di-compile-unit
+  di-basic-type
+  di-type-array
+  di-subroutine-type
+  di-function
+  di-lexical-block
+  di-location
+  builder-debug-location-set
+  instruction-debug-location-set
+  subprogram-set
+  di-expression
+  di-auto-variable
+  di-declare-record-at-end
+  di-value-record-at-end
   builder-clear
   builder-position
   builder-block

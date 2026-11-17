@@ -25,6 +25,20 @@
 
 (base:type builder-ref (pointer builder-handle))
 
+; LLVM metadata and debug-info handles.  Metadata is context-owned; a DI
+; builder is module-owned and must be finalized before its module is disposed.
+(base:type metadata-handle)
+
+(base:type metadata-ref (pointer metadata-handle))
+
+(base:type di-builder-handle)
+
+(base:type di-builder-ref (pointer di-builder-handle))
+
+(base:type debug-record-handle)
+
+(base:type debug-record-ref (pointer debug-record-handle))
+
 (base:type target-handle)
 
 (base:type target-ref (pointer target-handle))
@@ -67,6 +81,9 @@
   value-ref
   block-ref
   builder-ref
+  metadata-ref
+  di-builder-ref
+  debug-record-ref
   target-ref
   machine-ref
   layout-ref
