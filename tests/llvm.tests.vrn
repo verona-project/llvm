@@ -13,9 +13,7 @@
     (false (do (ir:message-dispose message) unit))))
 
 (base:function verified ((owner llvm:session)) bool
-  (let
-    ((message (pointer u8) (cast (pointer u8) (target:null-pointer)))
-     (result i32 (llvm:verify owner (& message))))
+  (let ((message (pointer u8) nil) (result i32 (llvm:verify owner (& message))))
     (do (release message) (match result (0 true) (_ false)))))
 
 (base:function invalid-module () bool
@@ -27,7 +25,7 @@
     (do
       (ir:block-append (field owner context) function "entry")
       (let
-        ((message (pointer u8) (cast (pointer u8) (target:null-pointer)))
+        ((message (pointer u8) nil)
          (result i32 (llvm:verify owner (& message)))
          (has-message
            bool
@@ -36,8 +34,8 @@
 
 (base:function invalid-triple () bool
   (let
-    ((message (pointer u8) (cast (pointer u8) (target:null-pointer)))
-     (out t:target-ref (cast t:target-ref (target:null-pointer)))
+    ((message (pointer u8) nil)
+     (out t:target-ref nil)
      (result i32 (target:from-triple "not-a-real-architecture-unknown-none" (& out) (& message)))
      (has-message
        bool
@@ -97,7 +95,7 @@
 
 (base:function emit ((owner llvm:session) (path (pointer u8)) (bad-path (pointer u8))) bool
   (let
-    ((message (pointer u8) (cast (pointer u8) (target:null-pointer)))
+    ((message (pointer u8) nil)
      (machine t:machine-ref (target:native-machine (field owner module) (& message))))
     (do
       (release message)
@@ -105,7 +103,7 @@
         (true false)
         (false
           (let
-            ((bad-message (pointer u8) (cast (pointer u8) (target:null-pointer)))
+            ((bad-message (pointer u8) nil)
              (bad
                i32
                (target:emit-file
@@ -117,7 +115,7 @@
              (diagnostic
                bool
                (match (base:is-null bad-message) (true false) (false true)))
-             (good-message (pointer u8) (cast (pointer u8) (target:null-pointer)))
+             (good-message (pointer u8) nil)
              (good
                i32
                (target:emit-file

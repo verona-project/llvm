@@ -1,7 +1,6 @@
 (import base)
 (import llvm.types :as t)
 (import llvm.core :as ir)
-(import llvm.target :as target)
 
 ; LLVM 23 llvm-c/Transforms/PassBuilder.h and llvm-c/Error.h.
 (base:external-function options-create "LLVMCreatePassBuilderOptions" () t:pass-options-ref)
@@ -23,7 +22,7 @@
    (out-message (pointer (pointer u8)))) i32
   (let ((options t:pass-options-ref (options-create)))
     (do
-      (store (deref out-message) (cast (pointer u8) (target:null-pointer)))
+      (store (deref out-message) nil)
       (verify-each options 1)
       (let ((error t:error-ref (run-passes module pipeline machine options)))
         (do

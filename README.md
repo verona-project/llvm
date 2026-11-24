@@ -16,9 +16,10 @@ beyond [Base](https://github.com/verona-project/base).
 
 ## Build and test
 
-Use a compatible Verona compiler, LLVM 23 shared libraries, Clang, and `llvm-ar`.
-LLVM must be discoverable by the linker and at runtime. The Verona compiler's
-pinned Nix shell supplies that toolchain when working inside its checkout.
+Use a Verona compiler that supports `nil` in Base declarations, LLVM 23 shared
+libraries, Clang, and `llvm-ar`. LLVM must be discoverable by the linker and at
+runtime. The Verona compiler's pinned Nix shell supplies that toolchain when
+working inside its checkout.
 
 For a standalone checkout, keep Base alongside this repository:
 
@@ -58,7 +59,7 @@ Additional architecture initializers remain future work.
 | `llvm.types` | Distinct opaque `context-ref`, `module-ref`, `type-ref`, `value-ref`, `block-ref`, `builder-ref`, `target-ref`, `machine-ref`, `layout-ref`; 32-bit `boolean` for LLVMBool |
 | `llvm.core` | Raw context/module/message management; integer, pointer and function types; functions and parameters; constants; blocks/builders; arithmetic, comparisons, calls, branches, phi nodes, casts and global strings; verification and LLVM's text printer |
 | `llvm.enums` | Named LLVM 23 C enum constants for predicates, linkage, verification and object generation |
-| `llvm.target` | Raw target/target-machine/layout operations plus `native-machine`, `native-machine-with-optimization`, `machine-for-triple`, `pointer-size`, `layout-string`, `null-pointer` helpers |
+| `llvm.target` | Raw target/target-machine/layout operations plus `native-machine`, `native-machine-with-optimization`, `machine-for-triple`, `pointer-size`, `layout-string` helpers |
 | `llvm.passes` | LLVM 23 new-pass-manager pipelines with owned error diagnostics |
 | `llvm` | Owning `session`, `create`, `destroy`, `verify`, fixed-arity direct `call-0` through `call-3`, and single-edge phi `incoming` helper |
 
@@ -80,7 +81,6 @@ is Verona; LLVM constructs and prints the IR itself.
 (import llvm)
 (import llvm.types :as t)
 (import llvm.core :as ir)
-(import llvm.target :as target)
 
 (base:function main () exit-code
   (let ((owner llvm:session (llvm:create "example"))
@@ -89,7 +89,7 @@ is Verona; LLVM constructs and prints the IR itself.
         (i32 t:type-ref (ir:int-type context 32))
         (fn t:value-ref (ir:function-add (field owner module) "main"
                          (ir:function-type i32 (& i32) 0 0)))
-        (message (pointer u8) (cast (pointer u8) (target:null-pointer))))
+        (message (pointer u8) nil))
     (do
       (ir:builder-position builder (ir:block-append context fn "entry"))
       (ir:build-ret builder (ir:const-int i32 42 0))
@@ -153,8 +153,9 @@ and object emission.
   on failure. Dispose a successful machine with `machine-dispose` after use.
 - Most builders require structurally valid operands and can assert on incorrect
   use; distinct handles prevent type-category mixups, not all LLVM misuse.
-  `null-pointer` uses the supported hosts' pointer-sized representation. Use
-  Base's `is-null` to test pointers.
+  Use `nil` to initialize a null pointer and Base's `is-null` to test pointers.
+  The deprecated `llvm.target:null-pointer` helper remains exported for
+  existing callers.
   No garbage collector, reference counting, or automatic resource cleanup is
   introduced.
 

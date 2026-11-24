@@ -70,7 +70,7 @@
    (features (pointer u8))
    (optimization i32)
    (out-message (pointer (pointer u8)))) t:machine-ref
-  (let ((target t:target-ref (cast t:target-ref (null-pointer))))
+  (let ((target t:target-ref nil))
     (do
       (init-aarch64-info)
       (init-aarch64)
@@ -107,7 +107,7 @@
                       (layout-dispose layout)
                       unit))))
               machine)))
-        (_ (cast t:machine-ref (null-pointer)))))))
+        (_ nil)))))
 
 ; Preserve the generic target defaults for existing binding consumers.
 (base:function machine-for-triple
@@ -136,7 +136,7 @@
   ((module t:module-ref) (optimization i32) (out-message (pointer (pointer u8)))) t:machine-ref
   (let
     ((triple (pointer u8) (default-triple))
-     (target t:target-ref (cast t:target-ref (null-pointer))))
+     (target t:target-ref nil))
     (do
       (initialize-native)
       (match (base:is-null triple)
@@ -145,7 +145,7 @@
             (store
               (deref out-message)
               (core:message-create "LLVM could not determine the host triple"))
-            (cast t:machine-ref (null-pointer))))
+            nil))
         (false
           (let ((status t:boolean (from-triple triple (& target) out-message)))
             (match status
@@ -176,15 +176,15 @@
                             unit))))
                     (core:message-dispose triple)
                     machine)))
-              (_ (do (core:message-dispose triple) (cast t:machine-ref (null-pointer)))))))))))
+              (_ (do (core:message-dispose triple) nil)))))))))
 
 ; Preserve the original default for existing binding consumers.
 (base:function native-machine ((module t:module-ref) (out-message (pointer (pointer u8))))
   t:machine-ref
   (native-machine-with-optimization module enum:codegen-default out-message))
 
-(base:function null-pointer () (pointer void)
-  (let ((zero usize 0)) (deref (cast (pointer (pointer void)) (cast (pointer void) (& zero))))))
+; Deprecated compatibility wrapper. Use the nil pointer literal.
+(base:function null-pointer () (pointer void) nil)
 
 (export
   machine-for-triple
