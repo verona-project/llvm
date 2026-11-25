@@ -151,6 +151,11 @@ and object emission.
   returns a null machine on failure and transfers an allocated diagnostic to
   its out-pointer. Object emission returns nonzero and an allocated diagnostic
   on failure. Dispose a successful machine with `machine-dispose` after use.
+- `llvm.core:context-diagnostic-handler-set` registers a callback for context
+  diagnostics. The callback borrows its diagnostic handle for the duration of
+  the call. `diagnostic-severity` reads its severity and
+  `diagnostic-description` returns text that the caller frees with
+  `message-dispose`.
 - Most builders require structurally valid operands and can assert on incorrect
   use; distinct handles prevent type-category mixups, not all LLVM misuse.
   Use `nil` to initialize a null pointer and Base's `is-null` to test pointers.

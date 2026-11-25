@@ -21,6 +21,12 @@
 
 (base:constant verify-return-status i32 2)
 
+(base:constant diagnostic-error i32 0)
+
+(base:constant diagnostic-warning i32 1)
+
+(base:constant diagnostic-remark i32 2)
+
 (base:constant codegen-none i32 0)
 
 (base:constant codegen-default i32 2)
@@ -57,6 +63,9 @@
   tail-call-musttail
   linkage-internal
   verify-return-status
+  diagnostic-error
+  diagnostic-warning
+  diagnostic-remark
   codegen-none
   codegen-default
   reloc-pic

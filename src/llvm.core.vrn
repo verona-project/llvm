@@ -7,6 +7,27 @@
 (base:external-function context-dispose "LLVMContextDispose" (t:context-ref) void)
 
 (base:external-function
+  context-diagnostic-handler-set-raw
+  "LLVMContextSetDiagnosticHandler"
+  (t:context-ref (pointer void) (pointer void))
+  void)
+
+; The bootstrap compiler accepts erased pointers in external declarations.
+(base:function context-diagnostic-handler-set
+  ((context t:context-ref)
+   (handler (pointer (function (t:diagnostic-ref (pointer void)) unit)))
+   (user-data (pointer void))) unit
+  (do (context-diagnostic-handler-set-raw context (cast (pointer void) handler) user-data) unit))
+
+(base:external-function diagnostic-severity "LLVMGetDiagInfoSeverity" (t:diagnostic-ref) i32)
+
+(base:external-function
+  diagnostic-description
+  "LLVMGetDiagInfoDescription"
+  (t:diagnostic-ref)
+  (pointer u8))
+
+(base:external-function
   module-create
   "LLVMModuleCreateWithNameInContext"
   ((pointer u8) t:context-ref)
@@ -603,6 +624,9 @@
   build-extract
   context-create
   context-dispose
+  context-diagnostic-handler-set
+  diagnostic-severity
+  diagnostic-description
   module-create
   module-dispose
   message-create

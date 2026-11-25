@@ -5,6 +5,10 @@
 
 (base:type context-ref (pointer context-handle))
 
+(base:type diagnostic-handle)
+
+(base:type diagnostic-ref (pointer diagnostic-handle))
+
 (base:type module-handle)
 
 (base:type module-ref (pointer module-handle))
@@ -76,6 +80,7 @@
   error-ref
   attribute-ref
   context-ref
+  diagnostic-ref
   module-ref
   type-ref
   value-ref
